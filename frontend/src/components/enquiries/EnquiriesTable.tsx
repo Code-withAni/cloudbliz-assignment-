@@ -6,8 +6,8 @@ import StatusBadge from './StatusBadge';
 interface EnquiriesTableProps {
   enquiries: Enquiry[];
   onView: (enquiry: Enquiry) => void;
-  onEdit: (enquiry: Enquiry) => void;
-  onDelete: (enquiry: Enquiry) => void;
+  onEdit?: (enquiry: Enquiry) => void;
+  onDelete?: (enquiry: Enquiry) => void;
 }
 
 function formatDate(value: string) {
@@ -75,25 +75,29 @@ export default function EnquiriesTable({
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`edit-enquiry-${enquiry.id}`}
-                    onClick={() => onEdit(enquiry)}
-                    aria-label={`Edit ${enquiry.customerName}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`delete-enquiry-${enquiry.id}`}
-                    onClick={() => onDelete(enquiry)}
-                    aria-label={`Delete ${enquiry.customerName}`}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {onEdit ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`edit-enquiry-${enquiry.id}`}
+                      onClick={() => onEdit(enquiry)}
+                      aria-label={`Edit ${enquiry.customerName}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                  {onDelete ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`delete-enquiry-${enquiry.id}`}
+                      onClick={() => onDelete(enquiry)}
+                      aria-label={`Delete ${enquiry.customerName}`}
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : null}
                 </div>
               </td>
             </tr>
