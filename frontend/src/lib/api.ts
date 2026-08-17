@@ -121,6 +121,17 @@ export interface UserSummary {
   email: string;
 }
 
+export type CreateUserInput = {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+};
+
+export type UpdateUserInput = Partial<Omit<CreateUserInput, 'password'>> & {
+  password?: string;
+};
+
 export interface EnquiryListParams {
   status?: EnquiryStatus;
   assignedTo?: string;
@@ -160,6 +171,26 @@ export const enquiryApi = {
 
 export const userApi = {
   list() {
-    return request<{ users: UserSummary[] }>('/users');
+    return request<{ users: AuthUser[] }>('/users');
+  },
+  assignable() {
+    return request<{ users: UserSummary[] }>('/users/assignable');
+  },
+  create(data: CreateUserInput) {
+    return request<{ user: AuthUser }>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  update(id: string, data: UpdateUserInput) {
+    return request<{ user: AuthUser }>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  remove(id: string) {
+    return request<{ message: string }>(`/users/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
