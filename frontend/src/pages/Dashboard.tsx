@@ -1,51 +1,41 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
-import { Tabs } from 'radix-ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, ClipboardList, Inbox, Loader2, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import AddEnquiryDialog from '../components/enquiries/AddEnquiryDialog';
 import DeleteEnquiryDialog from '../components/enquiries/DeleteEnquiryDialog';
 import EditEnquiryDialog from '../components/enquiries/EditEnquiryDialog';
 import EnquiriesTable from '../components/enquiries/EnquiriesTable';
 import ViewEnquiryDialog from '../components/enquiries/ViewEnquiryDialog';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
-import {
-  enquiryApi,
-  userApi,
-  type Enquiry,
-  type EnquiryStatus,
-  type UserSummary,
-} from '../lib/api';
+import { enquiryApi, userApi, type Enquiry, type UserSummary } from '../lib/api';
 
-type TabValue = 'All' | EnquiryStatus;
-
-const TABS: { value: TabValue; label: string }[] = [
-  { value: 'All', label: 'All' },
-  { value: 'New', label: 'New' },
-  { value: 'In Progress', label: 'In Progress' },
-  { value: 'Closed', label: 'Closed' },
-];
+const STATS = [
+  { key: 'Total', label: 'Total Enquiries', icon: Inbox, iconClass: 'bg-slate-100 text-slate-700' },
+  { key: 'New', label: 'New', icon: Sparkles, iconClass: 'bg-blue-50 text-blue-700' },
+  {
+    key: 'In Progress',
+    label: 'In Progress',
+    icon: Loader2,
+    iconClass: 'bg-amber-50 text-amber-700',
+  },
+  {
+    key: 'Closed',
+    label: 'Closed',
+    icon: CheckCircle2,
+    iconClass: 'bg-emerald-50 text-emerald-700',
+  },
+] as const;
 
 export default function Dashboard() {
-  const [tab, setTab] = useState<TabValue>('All');
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [assignedFilter, setAssignedFilter] = useState('all');
+  const navigate = useNavigate();
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [addOpen, setAddOpen] = useState(false);
   const [viewing, setViewing] = useState<Enquiry | null>(null);
   const [editing, setEditing] = useState<Enquiry | null>(null);
   const [deleting, setDeleting] = useState<Enquiry | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   useEffect(() => {
     userApi
@@ -59,18 +49,14 @@ export default function Dashboard() {
   const loadEnquiries = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { status?: EnquiryStatus; assignedTo?: string; search?: string } = {};
-      if (tab !== 'All') params.status = tab;
-      if (assignedFilter !== 'all') params.assignedTo = assignedFilter;
-      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-      const data = await enquiryApi.list(params);
+      const data = await enquiryApi.list();
       setEnquiries(data.enquiries);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load enquiries');
     } finally {
       setLoading(false);
     }
-  }, [tab, assignedFilter, debouncedSearch]);
+  }, []);
 
   useEffect(() => {
     loadEnquiries();
@@ -78,74 +64,82 @@ export default function Dashboard() {
 
   const refresh = () => setRefreshKey((key) => key + 1);
 
+  const counts = useMemo(() => {
+    const result: Record<string, number> = {
+      Total: enquiries.length,
+      New: 0,
+      'In Progress': 0,
+      Closed: 0,
+    };
+    for (const enquiry of enquiries) {
+      result[enquiry.status] += 1;
+    }
+    return result;
+  }, [enquiries]);
+
+  const recent = useMemo(() => enquiries.slice(0, 5), [enquiries]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Enquiries</h2>
-          <p className="text-sm text-slate-500">Track and manage customer enquiries.</p>
+          <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+          <p className="text-sm text-slate-500">Overview of your enquiry pipeline.</p>
         </div>
-        <Button data-testid="open-add-enquiry" onClick={() => setAddOpen(true)}>
+        <Button data-testid="dashboard-add-enquiry" onClick={() => navigate('/enquiries')}>
           <Plus className="h-4 w-4" />
           Add Enquiry
         </Button>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            data-testid="enquiry-search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by customer name or email…"
-            className="pl-9"
-          />
-        </div>
-        <div className="sm:w-56">
-          <Select
-            ariaLabel="Filter by assigned to"
-            value={assignedFilter}
-            onValueChange={setAssignedFilter}
-            options={[
-              { value: 'all', label: 'All assignees' },
-              ...users.map((u) => ({ value: u.id, label: u.name })),
-            ]}
-          />
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {STATS.map((stat) => (
+          <div
+            key={stat.key}
+            data-testid={`stat-${stat.key}`}
+            className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-4"
+          >
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-md ${stat.iconClass}`}
+            >
+              <stat.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{counts[stat.key]}</p>
+              <p className="text-sm text-slate-500">{stat.label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <Tabs.Root value={tab} onValueChange={(value) => setTab(value as TabValue)}>
-        <Tabs.List className="inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1">
-          {TABS.map((item) => (
-            <Tabs.Trigger
-              key={item.value}
-              value={item.value}
-              data-testid={`tab-${item.value}`}
-              className="rounded-md px-4 py-1.5 text-sm font-medium text-slate-600 outline-none data-[state=active]:bg-slate-900 data-[state=active]:text-white"
-            >
-              {item.label}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
-
-        <div className="mt-4">
-          {loading ? (
-            <div className="flex justify-center rounded-lg border border-slate-200 bg-white py-16">
-              <p className="text-sm text-slate-500">Loading enquiries…</p>
-            </div>
-          ) : (
-            <EnquiriesTable
-              enquiries={enquiries}
-              onView={setViewing}
-              onEdit={setEditing}
-              onDelete={setDeleting}
-            />
-          )}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <ClipboardList className="h-5 w-5 text-slate-500" />
+              Recent Enquiries
+            </h3>
+            <p className="text-sm text-slate-500">The most recently created enquiries.</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/enquiries')}>
+            View all
+          </Button>
         </div>
-      </Tabs.Root>
 
-      <AddEnquiryDialog open={addOpen} onOpenChange={setAddOpen} onCreated={refresh} />
+        {loading ? (
+          <div className="flex justify-center rounded-lg border border-slate-200 bg-white py-16">
+            <p className="text-sm text-slate-500">Loading enquiries…</p>
+          </div>
+        ) : (
+          <EnquiriesTable
+            enquiries={recent}
+            onView={setViewing}
+            onEdit={setEditing}
+            onDelete={setDeleting}
+          />
+        )}
+      </div>
+
       <ViewEnquiryDialog
         enquiry={viewing}
         open={viewing !== null}
