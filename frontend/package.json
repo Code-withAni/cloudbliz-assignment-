@@ -1,0 +1,7 @@
+{
+  "name": "@cloudblitz/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CloudBlitz Enquiry Management System - frontend (Vite + TypeScript)",
+  "type": "module"
+}
