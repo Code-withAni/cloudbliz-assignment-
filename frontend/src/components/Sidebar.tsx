@@ -1,4 +1,4 @@
-import { FolderKanban, LayoutDashboard, Search, Settings, Users } from 'lucide-react';
+import { LayoutDashboard, Search, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -6,8 +6,6 @@ import { cn } from '../lib/utils';
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/enquiries', label: 'Enquiries', icon: Search, end: false },
-  { to: '/reports', label: 'Reports', icon: FolderKanban, end: false },
-  { to: '/settings', label: 'Settings', icon: Settings, end: false },
 ];
 
 export default function Sidebar() {
