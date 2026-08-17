@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     userApi
-      .list()
+      .assignable()
       .then((data) => setUsers(data.users))
       .catch((error) =>
         toast.error(error instanceof Error ? error.message : 'Failed to load users'),
