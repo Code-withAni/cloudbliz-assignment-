@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import healthRoutes from './routes/healthRoutes';
 import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
+import enquiryRoutes from './routes/enquiryRoutes';
+import userRoutes from './routes/userRoutes';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -17,6 +19,8 @@ app.use(express.json());
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/enquiries', enquiryRoutes);
+app.use('/api/users', userRoutes);
 
 mongoose
   .connect(MONGO_URI)
